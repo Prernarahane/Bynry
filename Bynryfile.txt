@@ -1,0 +1,138 @@
+1. Create a Django Project
+bash
+Copy code
+django-admin startproject gas_utility
+cd gas_utility
+django-admin startapp services
+2. Directory Structure
+plaintext
+Copy code
+gas_utility/
+    ├── gas_utility/
+    │   ├── __init__.py
+    │   ├── settings.py
+    │   ├── urls.py
+    │   ├── asgi.py
+    │   └── wsgi.py
+    ├── services/
+    │   ├── migrations/
+    │   ├── templates/
+    │   │   └── services/
+    │   ├── __init__.py
+    │   ├── admin.py
+    │   ├── apps.py
+    │   ├── models.py
+    │   ├── forms.py
+    │   ├── urls.py
+    │   ├── views.py
+    │   └── tests.py
+    ├── manage.py
+3. Models (services/models.py)
+python
+Copy code
+from django.db import models
+from django.contrib.auth.models import User
+
+class ServiceRequest(models.Model):
+    REQUEST_TYPES = [
+        ('repair', 'Repair'),
+        ('installation', 'Installation'),
+        ('billing', 'Billing Inquiry'),
+        ('other', 'Other'),
+    ]
+    
+    customer = models.ForeignKey(User, on_delete=models.CASCADE)
+    request_type = models.CharField(choices=REQUEST_TYPES, max_length=50)
+    description = models.TextField()
+    file_attachment = models.FileField(upload_to='uploads/', blank=True, null=True)
+    status = models.CharField(max_length=50, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f'{self.customer.username} - {self.request_type}'
+4. Forms (services/forms.py)
+python
+Copy code
+from django import forms
+from .models import ServiceRequest
+
+class ServiceRequestForm(forms.ModelForm):
+    class Meta:
+        model = ServiceRequest
+        fields = ['request_type', 'description', 'file_attachment']
+5. Views (services/views.py)
+python
+Copy code
+from django.shortcuts import render, redirect
+from .models import ServiceRequest
+from .forms import ServiceRequestForm
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def create_request(request):
+    if request.method == 'POST':
+        form = ServiceRequestForm(request.POST, request.FILES)
+        if form.is_valid():
+            service_request = form.save(commit=False)
+            service_request.customer = request.user
+            service_request.save()
+            return redirect('track_requests')
+    else:
+        form = ServiceRequestForm()
+    return render(request, 'services/create_request.html', {'form': form})
+
+@login_required
+def track_requests(request):
+    requests = ServiceRequest.objects.filter(customer=request.user)
+    return render(request, 'services/track_requests.html', {'requests': requests})
+6. Templates (services/templates/services/)
+create_request.html
+html
+Copy code
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit Request</button>
+</form>
+track_requests.html
+html
+Copy code
+<h2>Your Service Requests</h2>
+<ul>
+    {% for request in requests %}
+        <li>
+            {{ request.request_type }} - {{ request.status }} <br>
+            Submitted: {{ request.created_at }} <br>
+            {% if request.resolved_at %}
+                Resolved: {{ request.resolved_at }}
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
+7. URLs (services/urls.py)
+python
+Copy code
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('create/', views.create_request, name='create_request'),
+    path('track/', views.track_requests, name='track_requests'),
+]
+8. Main Project URLs (gas_utility/urls.py)
+python
+Copy code
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('services/', include('services.urls')),
+]
+9. Run Migrations and Create Superuser
+bash
+Copy code
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
