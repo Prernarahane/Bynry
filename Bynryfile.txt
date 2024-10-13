@@ -1,12 +1,10 @@
 1. Create a Django Project
 bash
-Copy code
 django-admin startproject gas_utility
 cd gas_utility
 django-admin startapp services
 2. Directory Structure
 plaintext
-Copy code
 gas_utility/
     ├── gas_utility/
     │   ├── __init__.py
@@ -29,7 +27,6 @@ gas_utility/
     ├── manage.py
 3. Models (services/models.py)
 python
-Copy code
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -53,7 +50,6 @@ class ServiceRequest(models.Model):
         return f'{self.customer.username} - {self.request_type}'
 4. Forms (services/forms.py)
 python
-Copy code
 from django import forms
 from .models import ServiceRequest
 
@@ -63,7 +59,6 @@ class ServiceRequestForm(forms.ModelForm):
         fields = ['request_type', 'description', 'file_attachment']
 5. Views (services/views.py)
 python
-Copy code
 from django.shortcuts import render, redirect
 from .models import ServiceRequest
 from .forms import ServiceRequestForm
@@ -89,7 +84,6 @@ def track_requests(request):
 6. Templates (services/templates/services/)
 create_request.html
 html
-Copy code
 <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
@@ -97,7 +91,6 @@ Copy code
 </form>
 track_requests.html
 html
-Copy code
 <h2>Your Service Requests</h2>
 <ul>
     {% for request in requests %}
@@ -112,7 +105,6 @@ Copy code
 </ul>
 7. URLs (services/urls.py)
 python
-Copy code
 from django.urls import path
 from . import views
 
@@ -122,7 +114,6 @@ urlpatterns = [
 ]
 8. Main Project URLs (gas_utility/urls.py)
 python
-Copy code
 from django.contrib import admin
 from django.urls import path, include
 
@@ -131,8 +122,7 @@ urlpatterns = [
     path('services/', include('services.urls')),
 ]
 9. Run Migrations and Create Superuser
-bash
-Copy code
+bash 
 python manage.py makemigrations
 python manage.py migrate
 python manage.py createsuperuser
